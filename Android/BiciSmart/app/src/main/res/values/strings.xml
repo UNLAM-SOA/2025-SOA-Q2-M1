@@ -1,0 +1,62 @@
+<resources>
+    <!-- Nombre de la app -->
+    <string name="app_name">BiciInteligenteApp</string>
+
+    <!-- Pantalla de login -->
+    <string name="login_title">Bicicleta Inteligente</string>
+    <string name="hint_user">Usuario</string>
+    <string name="hint_pass">Contraseña</string>
+    <string name="login_button">INICIAR SESIÓN</string>
+    <string name="login_error_empty_user">Ingrese el usuario</string>
+    <string name="login_error_empty_pass">Ingrese la contraseña</string>
+    <string name="login_error_credentials">Usuario o contraseña incorrectos</string>
+    <string name="login_welcome">¡Bienvenido!</string>
+
+    <!-- Pantalla principal / Estado bici -->
+    <string name="title_bike_status">Estado de la Bicicleta</string>
+    <string name="desc_bici">Ícono representativo de una bicicleta</string>
+    <string name="btn_start_trip">Iniciar viaje</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="settings">Ajustes</string>
+    <string name="btn_turn_on">Encender</string>
+    <string name="btn_turn_off">Apagar</string>
+
+    <!-- Estados -->
+    <string name="status_off">Bicicleta apagada</string>
+    <string name="status_on">Bicicleta encendida</string>
+
+    <!-- Mensajes -->
+    <string name="msg_bike_on">Bicicleta encendida correctamente.</string>
+    <string name="msg_bike_off">Bicicleta apagada correctamente.</string>
+    <string name="msg_turn_on_first">Primero debes encender la bicicleta.</string>
+    <string name="msg_trip_started">¡Viaje en curso!</string>
+    <string name="msg_logged_out">Sesión cerrada correctamente.</string>
+
+    <!-- Pantalla de ajustes -->
+    <string name="title_settings">Ajustes de Usuario</string>
+    <string name="hint_weight">Peso (kg)</string>
+    <string name="hint_wheel">Rodado</string>
+    <string name="btn_save">Guardar</string>
+    <string name="msg_saved">Datos guardados correctamente.</string>
+    <string name="error_empty_fields">Completa ambos campos.</string>
+
+    <!-- Pantalla de viaje -->
+    <string name="trip_title">Viaje en Curso</string>
+    <string name="trip_time_default">00:00:00</string>
+    <string name="trip_distance_default">Distancia: 0.00 km</string>
+    <string name="btn_end_trip">Finalizar viaje</string>
+    <string name="msg_trip_end">Viaje finalizado correctamente.</string>
+
+    <!-- Pantalla de resumen del viaje -->
+    <string name="summary_title">¡Viaje Completado!</string>
+    <string name="summary_time_label">Tiempo:</string>
+    <string name="summary_distance_label">Distancia:</string>
+    <string name="summary_calories_label">Calorías:</string>
+    <string name="summary_btn_back">VOLVER AL INICIO</string>
+
+    <!-- Texto genérico -->
+    <string name="first_fragment_label">Primer fragmento</string>
+    <string name="second_fragment_label">Segundo fragmento</string>
+    <string name="next">Siguiente</string>
+    <string name="previous">Anterior</string>
+</resources>

@@ -1,0 +1,69 @@
+# ======================
+# Android Studio / Gradle
+# ======================
+
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+gradle-app.setting
+gradle.properties
+
+# Local configuration file (sdk path, signing configs, etc.)
+local.properties
+
+# Log files
+*.log
+
+# Android Studio generated files
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Keystore files (don’t upload your signing keys!)
+*.jks
+*.keystore
+
+# Android build outputs
+*/out/
+captures/
+outputs/
+intermediates/
+generated/
+*.apk
+*.ap_ 
+*.aab
+
+# Proguard / R8
+proguard/
+*.mapping
+*.hprof
+
+# NDK / CMake
+.cxx/
+.externalNativeBuild/
+
+# Jetpack Compose previews
+.idea/preview/
+compose-preview-cache/
+
+# Misc
+.DS_Store
+Thumbs.db
+
+# Lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/

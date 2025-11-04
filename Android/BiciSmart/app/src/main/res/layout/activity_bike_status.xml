@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFA"
+    tools:context=".BikeStatusActivity">
+
+    <!-- Botón Cerrar sesión -->
+    <ImageButton
+        android:id="@+id/btnLogout"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
+        android:layout_margin="16dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/logout"
+        android:src="@drawable/ic_logout"
+        app:tint="#43A047"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Botón Ajustes -->
+    <ImageButton
+        android:id="@+id/btnSettings"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
+        android:layout_margin="16dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/settings"
+        android:src="@drawable/ic_settings"
+        app:tint="#43A047"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Contenido principal -->
+    <ScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/btnLogout"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="24dp">
+
+            <!-- 🚴 Logo -->
+            <ImageView
+                android:id="@+id/imgLogo"
+                android:layout_width="176dp"
+                android:layout_height="152dp"
+                android:layout_marginTop="40dp"
+                android:layout_marginBottom="8dp"
+                android:contentDescription="@string/desc_bici"
+                android:src="@drawable/cycling"
+                app:tint="#9E9E9E" />
+
+            <!-- Estado de la bicicleta -->
+            <TextView
+                android:id="@+id/tvBikeStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/status_off"
+                android:textColor="#424242"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Tarjeta principal -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginBottom="40dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="10dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:padding="20dp">
+
+                    <!-- Botón encender/apagar -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPower"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_turn_on"
+                        android:textAllCaps="true"
+                        android:textColor="@android:color/white"
+                        app:backgroundTint="#BDBDBD"
+                        app:cornerRadius="12dp" />
+
+                    <!-- Botón iniciar viaje -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStartTrip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/btn_start_trip"
+                        android:textAllCaps="true"
+                        android:textColor="@android:color/white"
+                        android:enabled="false"
+                        app:backgroundTint="#BDBDBD"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
