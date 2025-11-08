@@ -57,6 +57,7 @@ static void disable_sensors();
 #define QUEUE_NO_WAIT 0
 #define SENSOR_INIT_INDEX 0
 #define TRUE 1
+#define DISTANCE_SENSOR_INDEX 0
 #define RED 255
 #define NO_RED 0
 #define GREEN 255
@@ -305,15 +306,10 @@ float read_distance_sensor()
 }
 
 event_t
-check_distance_sensor()
+activate_distance_sensor()
 {
   event_t new_event;
-  if (current_state == ST_STOPPED)
-  {
-    new_event.type = EV_CONTINUE;
-    return new_event;
-  }
-
+  
   distance_sensor.cm = read_distance_sensor();
   distance_state_e new_state;
 
@@ -358,7 +354,16 @@ check_distance_sensor()
   return new_event;
 }
 
-int read_light_sensor(int pin)
+event_t
+deactivate_distance_sensor ()
+{
+  event_t new_event;
+  new_event.type = EV_CONTINUE;
+  return new_event;
+}
+
+int 
+read_light_sensor(int pin)
 {
   return analogRead(pin);
 }
@@ -567,7 +572,7 @@ int get_angle(float distance, float max_distance, float min_distance,
   return angle;
 }
 
-void sync_actuators_with_sensors()
+void init_sensors()
 {
   light_sensor.state = LIGHT_HIGH;
   distance_sensor.state = DIST_FAR;
@@ -577,7 +582,7 @@ void sync_actuators_with_sensors()
 // Event detection
 // ------------------------------------------------
 int sensor_index = SENSOR_INIT_INDEX;
-event_t (*check_sensor[NUM_SENSORS])() = {check_distance_sensor, check_light_sensor, check_halleffect_sensor};
+event_t (*check_sensor[NUM_SENSORS])() = {deactivate_distance_sensor, check_light_sensor, check_halleffect_sensor};
 
 static void
 task_sensors(void *pv) // Disabled when ST_OFF
@@ -629,7 +634,8 @@ disable_sensors()
 // ------------------------------------------------
 // Wifi and MQTT
 // ------------------------------------------------
-void wifi_connect()
+void 
+wifi_connect()
 {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED)
@@ -639,7 +645,8 @@ void wifi_connect()
   }
 }
 
-void mqtt_reconnect()
+void 
+mqtt_reconnect()
 {
   char client_id[50];
   console_log("Attempting MQTT connection...");
@@ -675,7 +682,8 @@ void mqtt_reconnect()
   }
 }
 
-void check_wifi_connection()
+void 
+check_wifi_connection()
 {
   if (!client.connected())
   {
@@ -713,7 +721,8 @@ task_wifi(void *pv)
   }
 }
 
-void callback(char *topic, byte *message, unsigned int length)
+void 
+callback(char *topic, byte *message, unsigned int length)
 {
   console_log("Message arrived on topic: ");
   console_log(topic);
@@ -763,7 +772,8 @@ void callback(char *topic, byte *message, unsigned int length)
 // ------------------------------------------------
 // Initialization
 // ------------------------------------------------
-void start()
+void 
+start()
 {
   Serial.begin(SERIAL_BAUD_RATE);
 
@@ -837,7 +847,8 @@ void start()
 // ------------------------------------------------
 // Finite State Machine
 // ------------------------------------------------
-void fsm()
+void 
+fsm()
 {
   switch (current_state)
   {
@@ -846,9 +857,10 @@ void fsm()
     {
     case EV_TURN_ON:
       turn_on_screen();
-      sync_actuators_with_sensors();
+      init_sensors();
       console_log("ST_OFF", "EV_TURN_ON");
       current_state = ST_STOPPED;
+      check_sensor[DISTANCE_SENSOR_INDEX] = deactivate_distance_sensor;
       enable_sensors();
       break;
 
@@ -874,6 +886,8 @@ void fsm()
       update_screen();
       console_log("ST_STOPPED", "EV_WHEEL_TURN");
       current_state = ST_RIDING;
+      distance_sensor.state = DIST_FAR;
+      check_sensor[DISTANCE_SENSOR_INDEX] = activate_distance_sensor;
       break;
 
     case EV_TURN_OFF:
@@ -939,7 +953,7 @@ void fsm()
       deactivate_brakes();
       stop_buzzer();
       update_screen();
-      sync_actuators_with_sensors();
+      check_sensor[DISTANCE_SENSOR_INDEX] = deactivate_distance_sensor;
       console_log("ST_RIDING", "EV_TIMEOUT");
       current_state = ST_STOPPED;
       break;
@@ -1007,7 +1021,7 @@ void fsm()
       deactivate_brakes();
       stop_buzzer();
       update_screen();
-      sync_actuators_with_sensors();
+      check_sensor[DISTANCE_SENSOR_INDEX] = deactivate_distance_sensor;
       console_log("ST_BRAKING", "EV_TIMEOUT");
       current_state = ST_STOPPED;
       break;
