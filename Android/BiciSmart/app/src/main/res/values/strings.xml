@@ -35,7 +35,7 @@
     <!-- Pantalla de ajustes -->
     <string name="title_settings">Ajustes de Usuario</string>
     <string name="hint_weight">Peso (kg)</string>
-    <string name="hint_wheel">Rodado</string>
+    <string name="hint_wheel">Rodado (pulgadas)</string>
     <string name="btn_save">Guardar</string>
     <string name="msg_saved">Datos guardados correctamente.</string>
     <string name="error_empty_fields">Completa ambos campos.</string>

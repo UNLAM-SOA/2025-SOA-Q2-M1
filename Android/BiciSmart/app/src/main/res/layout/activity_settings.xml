@@ -8,7 +8,7 @@
     android:background="#FAFAFA"
     tools:context=".SettingsActivity">
 
-    <!-- 🔙 Botón volver -->
+    <!-- Botón volver -->
     <ImageButton
         android:id="@+id/btnBack"
         android:layout_width="48dp"
@@ -22,7 +22,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 🧾 Contenido principal -->
+    <!-- Contenido principal -->
     <LinearLayout
         android:layout_width="410dp"
         android:layout_height="362dp"

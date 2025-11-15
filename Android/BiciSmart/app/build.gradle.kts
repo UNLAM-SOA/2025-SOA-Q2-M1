@@ -41,6 +41,10 @@ dependencies {
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
+    implementation("androidx.preference:preference:1.2.1")
+    // OSMDROID MAPA
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

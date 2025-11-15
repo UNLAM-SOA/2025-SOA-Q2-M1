@@ -14,16 +14,36 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.button.MaterialButton;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.Polyline;
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
+import org.osmdroid.views.overlay.mylocation.IMyLocationProvider;
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TravelActivity extends AppCompatActivity {
     private MqttHandler mqttHandler;
-    private TextView tvTimer, tvDistance, tvTripTitle;
+    private TextView tvTimer, tvDistance;
     private ImageView imgCyclist;
     private MaterialButton btnEndTrip;
     public IntentFilter filterReceive;
@@ -33,9 +53,9 @@ public class TravelActivity extends AppCompatActivity {
 
     private static final String TAG = "TravelActivity";
 
-    // Cronómetro
     private long startMillis;
     private final Handler handler = new Handler();
+
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
@@ -45,12 +65,23 @@ public class TravelActivity extends AppCompatActivity {
         }
     };
 
-    // Datos de viaje
     private double distanceKm = 0.0;
 
-    // Configuración del usuario (rodado y peso)
     private double wheelInches = 0.0;
     private double userWeightKg = 0.0;
+
+    private MapView mapView;
+    private MyLocationNewOverlay myLocationOverlay;
+    private ActivityResultLauncher<String> requestFinePermission;
+    private Polyline routeLine;
+    private final List<GeoPoint> routePoints = new ArrayList<>();
+
+    // Nuevos componentes de optimización
+    private final ScheduledExecutorService mapExecutor =
+            Executors.newSingleThreadScheduledExecutor();
+
+    private final BlockingQueue<GeoPoint> pendingPoints =
+            new LinkedBlockingQueue<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,32 +90,103 @@ public class TravelActivity extends AppCompatActivity {
 
         mqttHandler = MqttHandler.getInstance(this);
 
-        // Referencias UI
-        tvTripTitle = findViewById(R.id.tvTripTitle);
         tvTimer = findViewById(R.id.tvTimer);
         tvDistance = findViewById(R.id.tvDistance);
         imgCyclist = findViewById(R.id.imgCyclist);
         btnEndTrip = findViewById(R.id.btnEndTrip);
 
-        // Animación del ícono del ciclista (sube y baja suavemente)
         ObjectAnimator anim = ObjectAnimator.ofFloat(imgCyclist, "translationY", 0f, -15f, 0f);
         anim.setDuration(1600);
         anim.setRepeatCount(ObjectAnimator.INFINITE);
         anim.start();
 
-        // Cargar ajustes del usuario
         loadUserSettings();
 
-        // Iniciar cronómetro
+        mapView = findViewById(R.id.mapView);
+        if (mapView != null) {
+            mapView.setMultiTouchControls(true);
+            mapView.getController().setZoom(17.0);
+            mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK);
+
+            routeLine = new Polyline();
+            routeLine.setWidth(8f);
+            routeLine.setColor(ContextCompat.getColor(this, android.R.color.holo_blue_dark));
+            mapView.getOverlayManager().add(routeLine);
+
+            requestFinePermission = registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        if (granted) enableMyLocationAndCenter();
+                    });
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                enableMyLocationAndCenter();
+            } else {
+                requestFinePermission.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            }
+        }
+
         startMillis = System.currentTimeMillis();
         handler.post(tick);
 
-        // Finalizar viaje → ir al resumen
         btnEndTrip.setOnClickListener(v -> finishTrip());
 
         configurarBroadcastReciever();
 
         Log.d(TAG, "TravelActivity iniciada. Rodado: " + wheelInches + " pulgadas, Peso: " + userWeightKg + " kg");
+    }
+
+    private void enableMyLocationAndCenter() {
+        if (mapView == null) return;
+
+        GpsMyLocationProvider gpsProvider = new GpsMyLocationProvider(this);
+        gpsProvider.setLocationUpdateMinTime(2000);
+        gpsProvider.setLocationUpdateMinDistance(2f);
+
+        // Captura puntos sin cargar UI
+        myLocationOverlay = new MyLocationNewOverlay(gpsProvider, mapView) {
+            @Override
+            public void onLocationChanged(final Location location, final IMyLocationProvider source) {
+                super.onLocationChanged(location, source);
+                if (location != null) {
+                    pendingPoints.add(new GeoPoint(location.getLatitude(), location.getLongitude()));
+                }
+            }
+        };
+
+        if (!mapView.getOverlays().contains(myLocationOverlay)) {
+            mapView.getOverlays().add(myLocationOverlay);
+        }
+
+        myLocationOverlay.enableMyLocation();
+        myLocationOverlay.enableFollowLocation();
+
+        myLocationOverlay.runOnFirstFix(() -> runOnUiThread(() -> {
+            GeoPoint me = myLocationOverlay.getMyLocation();
+            if (me != null) mapView.getController().animateTo(me);
+        }));
+    }
+
+    private void startBackgroundMapProcessor() {
+        mapExecutor.scheduleWithFixedDelay(() -> {
+            List<GeoPoint> batch = new ArrayList<>();
+            pendingPoints.drainTo(batch);
+
+            if (batch.isEmpty()) return;
+
+            synchronized (routePoints) {
+                routePoints.addAll(batch);
+            }
+
+            runOnUiThread(() -> {
+                synchronized (routePoints) {
+                    routeLine.setPoints(new ArrayList<>(routePoints));
+                }
+                if (mapView != null) mapView.invalidate();
+            });
+
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     private void loadUserSettings() {
@@ -111,29 +213,17 @@ public class TravelActivity extends AppCompatActivity {
         filterReceive.addCategory(Intent.CATEGORY_DEFAULT);
         filterConncetionLost.addCategory(Intent.CATEGORY_DEFAULT);
 
-        registerReceiver(receiver, filterReceive, Context.RECEIVER_EXPORTED );
-        registerReceiver(connectionLost, filterConncetionLost, Context.RECEIVER_EXPORTED );
-
-        Log.d(TAG, "Receivers registrados correctamente");
-        Log.d(TAG, "Esperando broadcasts con action: " + MqttHandler.ACTION_DATA_RECEIVE);
+        registerReceiver(receiver, filterReceive, Context.RECEIVER_EXPORTED);
+        registerReceiver(connectionLost, filterConncetionLost, Context.RECEIVER_EXPORTED);
     }
 
     public void onNewMessage(double wheel_turn_count) {
-        Log.d(TAG, "onNewMessage llamado - Vueltas de rueda: " + wheel_turn_count);
-
-        // Calcular la circunferencia de la rueda en metros
         double circumferenceMeters = inchesToMeters(wheelInches) * Math.PI;
-
-        // Calcular distancia total basada en el contador acumulado del ESP32
         distanceKm = (circumferenceMeters * wheel_turn_count) / 1000.0;
 
-        Log.d(TAG, "Circunferencia: " + circumferenceMeters + "m, Distancia calculada: " + distanceKm + " km");
-
-        // Actualizar UI en el hilo principal
-        runOnUiThread(() -> {
-            tvDistance.setText(String.format("%.2f km", distanceKm));
-            Log.d(TAG, "UI actualizada con distancia: " + distanceKm + " km");
-        });
+        runOnUiThread(() ->
+                tvDistance.setText(String.format(Locale.getDefault(), "Distancia: %.2f km", distanceKm))
+        );
     }
 
     private double inchesToMeters(double inches) {
@@ -145,14 +235,13 @@ public class TravelActivity extends AppCompatActivity {
         long h = totalSec / 3600;
         long m = (totalSec % 3600) / 60;
         long s = totalSec % 60;
-        return String.format("%02d:%02d:%02d", h, m, s);
+        return String.format(Locale.US, "%02d:%02d:%02d", h, m, s);
     }
 
     private void finishTrip() {
         handler.removeCallbacks(tick);
         mqttHandler.publish(ConfigMQTT.topicControl, "{\"trips\":0}");
 
-        // Enviar datos al resumen
         Intent intent = new Intent(this, SummaryActivity.class);
         intent.putExtra("distanceKm", distanceKm);
         intent.putExtra("durationMs", System.currentTimeMillis() - startMillis);
@@ -166,74 +255,38 @@ public class TravelActivity extends AppCompatActivity {
     public class ConnectionLost extends BroadcastReceiver {
         public void onReceive(Context context, Intent intent) {
             Toast.makeText(getApplicationContext(), "Conexión Perdida", Toast.LENGTH_SHORT).show();
-            new Thread(() -> {
-                try {
-                    Log.d(TAG, "Iniciando reconexión MQTT...");
-
-                    ConfigMQTT.useServerUBIDOTS();
-                    mqttHandler.connect(ConfigMQTT.mqttServer, ConfigMQTT.CLIENT_ID,
-                            ConfigMQTT.userName, ConfigMQTT.userPass);
-
-                    // Esperar a que se conecte
-                    int intentos = 0;
-                    while (!mqttHandler.isConnected() && intentos < 10) {
-                        Thread.sleep(500);
-                        intentos++;
-                    }
-
-                    if (mqttHandler.isConnected()) {
-                        mqttHandler.subscribe(ConfigMQTT.topicData);
-                        Log.d(TAG, "MQTT reconectado y suscrito exitosamente");
-                    } else {
-                        Log.e(TAG, "No se pudo reconectar a MQTT después de varios intentos");
-                    }
-
-                } catch (InterruptedException e) {
-                    Log.e(TAG, "Error en reconexión MQTT: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }).start();
         }
     }
 
     public class ReceptorOperacion extends BroadcastReceiver {
         public void onReceive(Context context, Intent intent) {
             double msg = intent.getDoubleExtra("msg",0);
-            Log.d(TAG, "Broadcast recibido: " + msg);
             onNewMessage(msg);
-            /*
-            try {
-                JSONObject jsonObject = new JSONObject(msgJson);
-
-                // El valor viene como double directamente en el JSON
-                if (jsonObject.has("value")) {
-                    double wheelTurns = jsonObject.getDouble("value");
-                    Log.d(TAG, "Valor parseado correctamente: " + wheelTurns);
-                    onNewMessage(wheelTurns);
-                } else {
-                    Log.e(TAG, "JSON no contiene campo 'value': " + msgJson);
-                }
-
-            } catch (JSONException e) {
-                Log.e(TAG, "Error parseando JSON: " + e.getMessage());
-                Log.e(TAG, "JSON recibido: " + msgJson);
-                e.printStackTrace();
-            }*/
         }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (mapView != null) mapView.onResume();
+        handler.post(tick);
+        startBackgroundMapProcessor();
+    }
+
+    @Override protected void onPause() {
+        super.onPause();
+        if (mapView != null) mapView.onPause();
+        handler.removeCallbacks(tick);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacks(tick);
-
-        // Desregistrar los receivers
         try {
             unregisterReceiver(receiver);
             unregisterReceiver(connectionLost);
-            Log.d(TAG, "Receivers desregistrados correctamente");
-        } catch (Exception e) {
-            Log.e(TAG, "Error al desregistrar receivers: " + e.getMessage());
-        }
+        } catch (Exception ignored) {}
+
+        mapExecutor.shutdownNow();
     }
 }

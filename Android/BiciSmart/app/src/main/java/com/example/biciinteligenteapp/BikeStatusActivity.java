@@ -72,22 +72,29 @@ public class BikeStatusActivity extends AppCompatActivity {
 
     // Alterna el estado de encendido de la bicicleta
     private void toggleBikePower() {
-        isBikeOn = !isBikeOn;
+        if (mqttHandler.isConnected()){
+            isBikeOn = !isBikeOn;
 
-        // Guardar estado en SharedPreferences
-        prefs.edit().putBoolean(KEY_BIKE_STATE, isBikeOn).apply();
+            // Guardar estado en SharedPreferences
+            prefs.edit().putBoolean(KEY_BIKE_STATE, isBikeOn).apply();
 
-        updateBikeStatus(isBikeOn);
+            updateBikeStatus(isBikeOn);
 
-        if (isBikeOn) {
-            Toast.makeText(this, getString(R.string.msg_bike_on), Toast.LENGTH_SHORT).show();
-            // Enviar comando ON al ESP32
-            mqttHandler.publish(ConfigMQTT.topicControl, "{\"control\":1}");
+            if (isBikeOn) {
+                Toast.makeText(this, getString(R.string.msg_bike_on), Toast.LENGTH_SHORT).show();
+                // Enviar comando ON al ESP32
+                mqttHandler.publish(ConfigMQTT.topicControl, "{\"control\":1}");
+            } else {
+                Toast.makeText(this, getString(R.string.msg_bike_off), Toast.LENGTH_SHORT).show();
+                // Enviar comando OFF al ESP32
+                mqttHandler.publish(ConfigMQTT.topicControl, "{\"control\":0}");
+            }
         } else {
-            Toast.makeText(this, getString(R.string.msg_bike_off), Toast.LENGTH_SHORT).show();
-            // Enviar comando OFF al ESP32
-            mqttHandler.publish(ConfigMQTT.topicControl, "{\"control\":0}");
+            Toast.makeText(this, "Error: sin conexión", Toast.LENGTH_SHORT).show();
+            mqttHandler.reconnect(ConfigMQTT.mqttServer, ConfigMQTT.CLIENT_ID,
+                    ConfigMQTT.userName, ConfigMQTT.userPass);
         }
+
     }
 
     // Actualiza la interfaz según el estado de la bicicleta
@@ -119,13 +126,20 @@ public class BikeStatusActivity extends AppCompatActivity {
 
     // Inicia un nuevo viaje si la bicicleta está encendida
     private void startTrip() {
-        if (!isBikeOn) {
-            Toast.makeText(this, getString(R.string.msg_turn_on_first), Toast.LENGTH_SHORT).show();
+        if (mqttHandler.isConnected()){
+            if (!isBikeOn) {
+                Toast.makeText(this, getString(R.string.msg_turn_on_first), Toast.LENGTH_SHORT).show();
+            } else {
+                mqttHandler.publish(ConfigMQTT.topicControl, "{\"trips\":1}");
+                Toast.makeText(this, getString(R.string.msg_trip_started), Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, TravelActivity.class);
+                startActivity(intent);
+                finish();
+            }
         } else {
-            mqttHandler.publish(ConfigMQTT.topicControl, "{\"trips\":1}");
-            Toast.makeText(this, getString(R.string.msg_trip_started), Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(this, TravelActivity.class);
-            startActivity(intent);
+            Toast.makeText(this, "Error: sin conexión", Toast.LENGTH_SHORT).show();
+            mqttHandler.reconnect(ConfigMQTT.mqttServer, ConfigMQTT.CLIENT_ID,
+                    ConfigMQTT.userName, ConfigMQTT.userPass);
         }
     }
 }

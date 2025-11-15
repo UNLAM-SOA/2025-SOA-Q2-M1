@@ -2,6 +2,9 @@ package com.example.biciinteligenteapp;
 
 import android.app.Application;
 import android.util.Log;
+import androidx.preference.PreferenceManager;
+import org.osmdroid.config.Configuration;
+import java.io.File;
 
 public class BikeApplication extends Application {
     private static final String TAG = "BikeApplication";
@@ -9,6 +12,20 @@ public class BikeApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // ---- CONFIGURACIÓN DE OSMdroid ----
+        Configuration.getInstance().load(
+                getApplicationContext(),
+                PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+        );
+
+        // Carpeta interna donde se guardan los mosaicos (tiles)
+        File osmdroidBase = new File(getCacheDir(), "osmdroid");
+        Configuration.getInstance().setOsmdroidBasePath(osmdroidBase);
+        Configuration.getInstance().setOsmdroidTileCache(new File(osmdroidBase, "tiles"));
+
+        // User Agent obligatorio (identifica tu app ante los servidores OSM)
+        Configuration.getInstance().setUserAgentValue(getPackageName());
 
         // Inicializar MQTT en un thread separado
         new Thread(() -> {

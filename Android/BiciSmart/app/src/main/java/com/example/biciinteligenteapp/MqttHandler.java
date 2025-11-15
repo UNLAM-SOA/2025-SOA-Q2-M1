@@ -6,6 +6,7 @@ import android.util.Log;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -13,19 +14,14 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONObject;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class MqttHandler implements MqttCallback {
     private static final String TAG = "MqttHandler";
 
-    public static final String BROKER_URL = "tcp://industrial.api.ubidots.com:1883";
-    public static final String CLIENT_ID = "mqttx_f9bfd3ww";
-    public static final String USER = "BBUS-HdFdBXCCMsjGsKwFNnLh7Y7vzLTasv";
-    public static final String PASS = "BBUS-HdFdBXCCMsjGsKwFNnLh7Y7vzLTasv";
-    public static final String TOPIC_DATA = "/v1.6/devices/bici/data/lv";
-    public static final String TOPIC_CONTROL = "/v1.6/devices/bici";
-
     public static final String ACTION_DATA_RECEIVE = "com.example.intentservice.intent.action.DATA_RECEIVE";
     public static final String ACTION_CONNECTION_LOST = "com.example.intentservice.intent.action.CONNECTION_LOST";
-
+    private final AtomicBoolean isReconnecting = new AtomicBoolean(false);
     private static MqttHandler instance;
     private MqttClient client;
     private Context mContext;
@@ -61,7 +57,7 @@ public class MqttHandler implements MqttCallback {
                 // Opciones adicionales recomendadas
                 options.setKeepAliveInterval(60);
                 options.setConnectionTimeout(30);
-                options.setAutomaticReconnect(true);
+                options.setAutomaticReconnect(false);
 
                 // Set up the persistence layer
                 MemoryPersistence persistence = new MemoryPersistence();
@@ -78,6 +74,63 @@ public class MqttHandler implements MqttCallback {
             }
         }).start();
     }
+
+    /*
+    @Override
+    public void connectComplete(boolean reconnect, String serverURI) {
+        if (reconnect) {
+            Log.d(TAG, "Reconectado, re-suscribiendo...");
+            subscribe(ConfigMQTT.topicData);
+        }
+    }
+    */
+
+    public void reconnect(String brokerUrl, String clientId, String username, String password) {
+        if (isReconnecting.get()) {
+            return;
+        }
+        isReconnecting.set(true);
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Log.d(TAG, "Intentando reconectar...");
+
+                    MqttConnectOptions options = new MqttConnectOptions();
+                    options.setCleanSession(true);
+                    options.setUserName(username);
+                    options.setPassword(password.toCharArray());
+                    options.setKeepAliveInterval(60);
+                    options.setConnectionTimeout(30);
+                    options.setAutomaticReconnect(false);
+
+                    MemoryPersistence persistence = new MemoryPersistence();
+
+                    client = new MqttClient(brokerUrl, clientId, persistence);
+                    client.setCallback(this);
+
+                    client.connect(options);
+
+                    Log.d(TAG, "Reconectado correctamente a " + brokerUrl);
+
+                    // Resuscribir al reconectar
+                    subscribe(ConfigMQTT.topicData);
+
+                    isReconnecting.set(false);
+
+                    return;
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Error al reconectar: " + e.getMessage());
+                }
+
+                // Esperar antes del siguiente intento
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignored) {}
+            }
+        }).start();
+    }
+
 
     public void disconnect() {
         new Thread(() -> {
@@ -152,6 +205,8 @@ public class MqttHandler implements MqttCallback {
         Intent i = new Intent(ACTION_CONNECTION_LOST);
         i.addCategory(Intent.CATEGORY_DEFAULT);
         mContext.sendBroadcast(i);
+        reconnect(ConfigMQTT.mqttServer, ConfigMQTT.CLIENT_ID,
+                ConfigMQTT.userName, ConfigMQTT.userPass);
     }
 
     @Override
