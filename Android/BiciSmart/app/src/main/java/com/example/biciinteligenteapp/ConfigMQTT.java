@@ -17,7 +17,7 @@ public class ConfigMQTT {
     public static String topicData;
     public static String topicControl;
 
-    // Métodos para seleccionar Ubidots
+    // Método para seleccionar Ubidots
     public static void useServerUBIDOTS() {
         mqttServer = MQTT_SERVER_UBIDOTS;
         userName = USER_NAME_UBIDOTS;

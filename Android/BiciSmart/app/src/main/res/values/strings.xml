@@ -49,10 +49,11 @@
 
     <!-- Pantalla de resumen del viaje -->
     <string name="summary_title">¡Viaje Completado!</string>
-    <string name="summary_time_label">Tiempo:</string>
-    <string name="summary_distance_label">Distancia:</string>
-    <string name="summary_calories_label">Calorías:</string>
     <string name="summary_btn_back">VOLVER AL INICIO</string>
+    <string name="summary_time_label">Tiempo: %s</string>
+    <string name="summary_distance_label">Distancia: %s</string>
+    <string name="summary_calories_label">Calorías: %s</string>
+
 
     <!-- Texto genérico -->
     <string name="first_fragment_label">Primer fragmento</string>

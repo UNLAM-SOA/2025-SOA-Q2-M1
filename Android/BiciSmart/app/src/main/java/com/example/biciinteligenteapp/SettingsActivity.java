@@ -9,14 +9,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    private TextInputLayout tilWeight, tilWheel;
     private TextInputEditText txtWeight, txtWheel;
-    private MaterialButton btnSaveSettings;
-    private ImageButton btnBack;
 
     // Valores por defecto sino se ingresan valores
     private static final double DEFAULT_WEIGHT_KG = 70.0;
@@ -28,12 +24,10 @@ public class SettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_settings);
 
         // Referencias UI
-        tilWeight = findViewById(R.id.tilWeight);
-        tilWheel = findViewById(R.id.tilWheel);
         txtWeight = findViewById(R.id.txtWeight);
         txtWheel = findViewById(R.id.txtWheel);
-        btnSaveSettings = findViewById(R.id.btnSaveSettings);
-        btnBack = findViewById(R.id.btnBack);
+        MaterialButton btnSaveSettings = findViewById(R.id.btnSaveSettings);
+        ImageButton btnBack = findViewById(R.id.btnBack);
 
         // Cargar valores previos (si existen o usar los predeterminados)
         SharedPreferences prefs = getSharedPreferences("UserSettings", MODE_PRIVATE);
@@ -41,22 +35,11 @@ public class SettingsActivity extends AppCompatActivity {
         String savedWeight = prefs.getString("weight", "");
         String savedWheel = prefs.getString("wheel", "");
 
-        if (savedWeight.isEmpty() || savedWheel.isEmpty()) {
-            // Aplicar valores por defecto
-            txtWeight.setText(String.valueOf(DEFAULT_WEIGHT_KG));
-            txtWheel.setText(String.valueOf(DEFAULT_WHEEL_INCHES));
-
-            Toast.makeText(this,
-                    "Se aplicaron valores por defecto (peso y rodado).",
-                    Toast.LENGTH_SHORT).show();
-        } else {
-            txtWeight.setText(savedWeight);
-            txtWheel.setText(savedWheel);
-        }
+        txtWeight.setText(savedWeight.isEmpty() ? String.valueOf(DEFAULT_WEIGHT_KG) : savedWeight);
+        txtWheel.setText(savedWheel.isEmpty() ? String.valueOf(DEFAULT_WHEEL_INCHES) : savedWheel);
 
         // Botón volver atrás
         btnBack.setOnClickListener(v -> finish());
-
         // Botón guardar
         btnSaveSettings.setOnClickListener(v -> saveSettings());
     }
@@ -70,7 +53,6 @@ public class SettingsActivity extends AppCompatActivity {
             Toast.makeText(this, getString(R.string.error_empty_fields), Toast.LENGTH_SHORT).show();
             return;
         }
-
         // Guardar en SharedPreferences
         SharedPreferences.Editor editor = getSharedPreferences("UserSettings", MODE_PRIVATE).edit();
         editor.putString("weight", weight);

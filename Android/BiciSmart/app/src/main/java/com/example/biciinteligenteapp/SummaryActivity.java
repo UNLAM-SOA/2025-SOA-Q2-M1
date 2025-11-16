@@ -8,10 +8,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 
-public class SummaryActivity extends AppCompatActivity {
+import java.util.Locale;
 
-    private TextView tvTime, tvDistance, tvCalories;
-    private MaterialButton btnBackToHome;
+public class SummaryActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,10 +18,10 @@ public class SummaryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_summary);
 
         // Referencias UI
-        tvTime = findViewById(R.id.tvTime);
-        tvDistance = findViewById(R.id.tvDistance);
-        tvCalories = findViewById(R.id.tvCalories);
-        btnBackToHome = findViewById(R.id.btnBackToHome);
+        TextView tvTime = findViewById(R.id.tvTime);
+        TextView tvDistance = findViewById(R.id.tvDistance);
+        TextView tvCalories = findViewById(R.id.tvCalories);
+        MaterialButton btnBackToHome = findViewById(R.id.btnBackToHome);
 
         // Datos recibidos del viaje
         double distanceKm = getIntent().getDoubleExtra("distanceKm", 0.0);
@@ -31,12 +30,12 @@ public class SummaryActivity extends AppCompatActivity {
 
         // Formatear datos
         String timeFormatted = formatElapsed(durationMs);
-        String distanceFormatted = String.format("%.2f km", distanceKm);
-        String caloriesFormatted = String.format("%.0f kcal", estimateCalories(distanceKm, weightKg));
+        String distanceFormatted = String.format(Locale.US, "%.2f km", distanceKm);
+        String caloriesFormatted = String.format(Locale.US, "%.0f kcal", estimateCalories(distanceKm, weightKg));
 
-        tvTime.setText("Tiempo: " + timeFormatted);
-        tvDistance.setText("Distancia: " + distanceFormatted);
-        tvCalories.setText("Calorías: " + caloriesFormatted);
+        tvTime.setText(getString(R.string.summary_time_label, timeFormatted));
+        tvDistance.setText(getString(R.string.summary_distance_label, distanceFormatted));
+        tvCalories.setText(getString(R.string.summary_calories_label, caloriesFormatted));
 
         // Botón volver al inicio
         btnBackToHome.setOnClickListener(v -> {
@@ -60,6 +59,6 @@ public class SummaryActivity extends AppCompatActivity {
         long h = totalSec / 3600;
         long m = (totalSec % 3600) / 60;
         long s = totalSec % 60;
-        return String.format("%02d:%02d:%02d", h, m, s);
+        return String.format(Locale.US, "%02d:%02d:%02d", h, m, s);
     }
 }

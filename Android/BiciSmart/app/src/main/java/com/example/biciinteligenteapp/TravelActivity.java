@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -44,12 +45,10 @@ import java.util.concurrent.TimeUnit;
 public class TravelActivity extends AppCompatActivity {
     private MqttHandler mqttHandler;
     private TextView tvTimer, tvDistance;
-    private ImageView imgCyclist;
-    private MaterialButton btnEndTrip;
     public IntentFilter filterReceive;
     public IntentFilter filterConncetionLost;
-    private ReceptorOperacion receiver = new ReceptorOperacion();
-    private ConnectionLost connectionLost = new ConnectionLost();
+    private final ReceptorOperacion receiver = new ReceptorOperacion();
+    private final ConnectionLost connectionLost = new ConnectionLost();
 
     private static final String TAG = "TravelActivity";
 
@@ -66,17 +65,14 @@ public class TravelActivity extends AppCompatActivity {
     };
 
     private double distanceKm = 0.0;
-
     private double wheelInches = 0.0;
     private double userWeightKg = 0.0;
 
     private MapView mapView;
     private MyLocationNewOverlay myLocationOverlay;
-    private ActivityResultLauncher<String> requestFinePermission;
     private Polyline routeLine;
     private final List<GeoPoint> routePoints = new ArrayList<>();
 
-    // Nuevos componentes de optimización
     private final ScheduledExecutorService mapExecutor =
             Executors.newSingleThreadScheduledExecutor();
 
@@ -92,8 +88,8 @@ public class TravelActivity extends AppCompatActivity {
 
         tvTimer = findViewById(R.id.tvTimer);
         tvDistance = findViewById(R.id.tvDistance);
-        imgCyclist = findViewById(R.id.imgCyclist);
-        btnEndTrip = findViewById(R.id.btnEndTrip);
+        ImageView imgCyclist = findViewById(R.id.imgCyclist);
+        MaterialButton btnEndTrip = findViewById(R.id.btnEndTrip);
 
         ObjectAnimator anim = ObjectAnimator.ofFloat(imgCyclist, "translationY", 0f, -15f, 0f);
         anim.setDuration(1600);
@@ -109,11 +105,13 @@ public class TravelActivity extends AppCompatActivity {
             mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK);
 
             routeLine = new Polyline();
+            //noinspection deprecation
             routeLine.setWidth(8f);
+            //noinspection deprecation
             routeLine.setColor(ContextCompat.getColor(this, android.R.color.holo_blue_dark));
             mapView.getOverlayManager().add(routeLine);
 
-            requestFinePermission = registerForActivityResult(
+            ActivityResultLauncher<String> requestFinePermission = registerForActivityResult(
                     new ActivityResultContracts.RequestPermission(),
                     granted -> {
                         if (granted) enableMyLocationAndCenter();
@@ -132,7 +130,7 @@ public class TravelActivity extends AppCompatActivity {
 
         btnEndTrip.setOnClickListener(v -> finishTrip());
 
-        configurarBroadcastReciever();
+        setupBroadcastReceiver();
 
         Log.d(TAG, "TravelActivity iniciada. Rodado: " + wheelInches + " pulgadas, Peso: " + userWeightKg + " kg");
     }
@@ -193,28 +191,27 @@ public class TravelActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("UserSettings", MODE_PRIVATE);
         String wheel = prefs.getString("wheel", "");
         String weight = prefs.getString("weight", "");
-        try {
-            wheelInches = wheel.isEmpty() ? 26.0 : Double.parseDouble(wheel.replace(",", "."));
-        } catch (Exception ignored) {
-            wheelInches = 26.0;
-        }
-        try {
-            userWeightKg = weight.isEmpty() ? 65.0 : Double.parseDouble(weight.replace(",", "."));
-        } catch (Exception ignored) {
-            userWeightKg = 65.0;
-        }
+
+        wheelInches = Double.parseDouble(wheel.replace(",", "."));
+        userWeightKg = Double.parseDouble(weight.replace(",", "."));
+
     }
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    private void configurarBroadcastReciever() {
+    private void setupBroadcastReceiver() {
         filterReceive = new IntentFilter(MqttHandler.ACTION_DATA_RECEIVE);
         filterConncetionLost = new IntentFilter(MqttHandler.ACTION_CONNECTION_LOST);
 
         filterReceive.addCategory(Intent.CATEGORY_DEFAULT);
         filterConncetionLost.addCategory(Intent.CATEGORY_DEFAULT);
 
-        registerReceiver(receiver, filterReceive, Context.RECEIVER_EXPORTED);
-        registerReceiver(connectionLost, filterConncetionLost, Context.RECEIVER_EXPORTED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filterReceive, Context.RECEIVER_EXPORTED);
+            registerReceiver(connectionLost, filterConncetionLost, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(receiver, filterReceive);
+            registerReceiver(connectionLost, filterConncetionLost);
+        }
     }
 
     public void onNewMessage(double wheel_turn_count) {

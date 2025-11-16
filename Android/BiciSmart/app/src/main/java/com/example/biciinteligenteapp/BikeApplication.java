@@ -13,7 +13,7 @@ public class BikeApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // ---- CONFIGURACIÓN DE OSMdroid ----
+        // CONFIGURACIÓN DE OSMdroid
         Configuration.getInstance().load(
                 getApplicationContext(),
                 PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
@@ -24,7 +24,7 @@ public class BikeApplication extends Application {
         Configuration.getInstance().setOsmdroidBasePath(osmdroidBase);
         Configuration.getInstance().setOsmdroidTileCache(new File(osmdroidBase, "tiles"));
 
-        // User Agent obligatorio (identifica tu app ante los servidores OSM)
+        // User Agent obligatorio (identifica la app ante los servidores OSM)
         Configuration.getInstance().setUserAgentValue(getPackageName());
 
         // Inicializar MQTT en un thread separado
@@ -40,6 +40,7 @@ public class BikeApplication extends Application {
                 // Esperar a que se conecte
                 int intentos = 0;
                 while (!mqttHandler.isConnected() && intentos < 10) {
+                    //noinspection BusyWait
                     Thread.sleep(500);
                     intentos++;
                 }
@@ -52,8 +53,7 @@ public class BikeApplication extends Application {
                 }
 
             } catch (InterruptedException e) {
-                Log.e(TAG, "Error en inicialización MQTT: " + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "Error en inicialización MQTT", e);
             }
         }).start();
     }

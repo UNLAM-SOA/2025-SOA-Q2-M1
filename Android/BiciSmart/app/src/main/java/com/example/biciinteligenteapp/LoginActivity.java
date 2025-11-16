@@ -18,11 +18,10 @@ import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
 
-    // --- Constantes de credenciales (hardcodeadas) --- ADMIN ADMIN
+    // Constantes de credenciales (hardcodeadas) ADMIN ADMIN
     private static final String VALID_USER = "admin";
     private static final String VALID_PASS = "admin";
 
-    // --- Referencias UI ---
     private TextInputLayout tilUser, tilPass;
     private TextInputEditText txtUser, txtPass;
     private Button btnLogin;
@@ -49,11 +48,11 @@ public class LoginActivity extends AppCompatActivity {
             return false;
         });
 
-        // Click en botón login
+        // Listener para iniciar sesión
         btnLogin.setOnClickListener(v -> attemptLogin());
     }
 
-    // Valida las credenciales y gestiona el inicio de sesióN
+    // Valida las credenciales y gestiona el inicio de sesión
     private void attemptLogin() {
         // Ocultar teclado
         View view = this.getCurrentFocus();
@@ -90,7 +89,7 @@ public class LoginActivity extends AppCompatActivity {
             // Ir a la siguiente pantalla
             Intent intent = new Intent(this, BikeStatusActivity.class);
             startActivity(intent);
-            finish(); // Evita volver atrás
+            finish();
         } else {
             tilUser.setError("Usuario o contraseña incorrectos");
             tilPass.setError("Usuario o contraseña incorrectos");

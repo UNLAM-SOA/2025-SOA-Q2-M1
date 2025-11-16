@@ -6,7 +6,6 @@ import android.util.Log;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -24,7 +23,7 @@ public class MqttHandler implements MqttCallback {
     private final AtomicBoolean isReconnecting = new AtomicBoolean(false);
     private static MqttHandler instance;
     private MqttClient client;
-    private Context mContext;
+    private final Context mContext;
 
     // Constructor privado para Singleton
     private MqttHandler(Context context) {
@@ -54,12 +53,10 @@ public class MqttHandler implements MqttCallback {
                 options.setUserName(username);
                 options.setPassword(password.toCharArray());
 
-                // Opciones adicionales recomendadas
                 options.setKeepAliveInterval(60);
                 options.setConnectionTimeout(30);
                 options.setAutomaticReconnect(false);
 
-                // Set up the persistence layer
                 MemoryPersistence persistence = new MemoryPersistence();
 
                 client = new MqttClient(brokerUrl, clientId, persistence);
@@ -69,21 +66,10 @@ public class MqttHandler implements MqttCallback {
                 Log.d(TAG, "Conectado exitosamente a " + brokerUrl);
 
             } catch (MqttException e) {
-                Log.e(TAG, "Error al conectar: " + e.getMessage() + "  " + e.getCause());
-                e.printStackTrace();
+                Log.e(TAG, "Error al conectar", e);
             }
         }).start();
     }
-
-    /*
-    @Override
-    public void connectComplete(boolean reconnect, String serverURI) {
-        if (reconnect) {
-            Log.d(TAG, "Reconectado, re-suscribiendo...");
-            subscribe(ConfigMQTT.topicData);
-        }
-    }
-    */
 
     public void reconnect(String brokerUrl, String clientId, String username, String password) {
         if (isReconnecting.get()) {
@@ -125,12 +111,12 @@ public class MqttHandler implements MqttCallback {
 
                 // Esperar antes del siguiente intento
                 try {
+                    //noinspection BusyWait
                     Thread.sleep(3000);
                 } catch (InterruptedException ignored) {}
             }
         }).start();
     }
-
 
     public void disconnect() {
         new Thread(() -> {
@@ -140,8 +126,7 @@ public class MqttHandler implements MqttCallback {
                     Log.d(TAG, "Desconectado exitosamente");
                 }
             } catch (MqttException e) {
-                Log.e(TAG, "Error al desconectar: " + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "Error al desconectar", e);
             }
         }).start();
     }
@@ -162,8 +147,7 @@ public class MqttHandler implements MqttCallback {
                     Log.w(TAG, "No se puede publicar: cliente no conectado");
                 }
             } catch (MqttException e) {
-                Log.e(TAG, "Error al publicar: " + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "Error al publicar", e);
             }
         }).start();
     }
@@ -178,22 +162,7 @@ public class MqttHandler implements MqttCallback {
                     Log.w(TAG, "No se puede suscribir: cliente no conectado");
                 }
             } catch (MqttException e) {
-                Log.e(TAG, "Error al suscribirse: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    public void unsubscribe(String topic) {
-        new Thread(() -> {
-            try {
-                if (client != null && client.isConnected()) {
-                    client.unsubscribe(topic);
-                    Log.d(TAG, "Desuscrito de " + topic);
-                }
-            } catch (MqttException e) {
-                Log.e(TAG, "Error al desuscribirse: " + e.getMessage());
-                e.printStackTrace();
+                Log.e(TAG, "Error al suscribirse", e);
             }
         }).start();
     }
@@ -210,21 +179,15 @@ public class MqttHandler implements MqttCallback {
     }
 
     @Override
-    /*
-     * ESTE METODO SE EJECUTA EN UN THREAD SECUNDARIO, POR LO QUE NO PUEDE
-     * ACTUALIZAR LA INTERFAZ DE USUARIO DIRECTAMENTE. POR LO QUE DEBE NOTIFICAR
-     * AL MAIN THREAD PARA QUE LO MUESTRE EN LA INTERFAZ DE USUARIO
-     */
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
+    public void messageArrived(String topic, MqttMessage message) {
         String msgJson = message.toString();
         Log.d(TAG, "Mensaje recibido en " + topic + ": " + msgJson);
 
         try {
             JSONObject json = new JSONObject(msgJson);
 
-            // Validar que existe el campo "value" y obtenerlo como double
             if (json.has("value")) {
-                double value = json.getDouble("value"); // Usar getDouble en lugar de getString
+                double value = json.getDouble("value");
                 Log.d(TAG, "Valor extraído correctamente: " + value);
 
                 // Enviar broadcast con el mensaje completo
@@ -239,27 +202,12 @@ public class MqttHandler implements MqttCallback {
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "Error al procesar mensaje: " + e.getMessage());
-            e.printStackTrace();
+            Log.e(TAG, "Error al procesar mensaje", e);
         }
     }
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
         Log.d(TAG, "Entrega completada");
-    }
-
-    // Método para limpiar recursos si es necesario
-    public void destroy() {
-        new Thread(() -> {
-            disconnect();
-            // Esperar un poco para que se complete la desconexión
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            instance = null;
-        }).start();
     }
 }

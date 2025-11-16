@@ -18,11 +18,9 @@ public class BikeStatusActivity extends AppCompatActivity {
     private MqttHandler mqttHandler;
     private static final String PREFS_NAME = "BikePrefs";
     private static final String KEY_BIKE_STATE = "isBikeOn";
-
     private MaterialButton btnPower, btnStartTrip;
     private TextView tvBikeStatus;
     private ImageView imgLogo;
-    private ImageButton btnLogout, btnSettings;
     private boolean isBikeOn = false;
     private SharedPreferences prefs;
 
@@ -30,6 +28,9 @@ public class BikeStatusActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bike_status);
+
+        ImageButton btnLogout = findViewById(R.id.btnLogout);
+        ImageButton btnSettings = findViewById(R.id.btnSettings);
 
         mqttHandler = MqttHandler.getInstance(this);
 
@@ -41,8 +42,6 @@ public class BikeStatusActivity extends AppCompatActivity {
         btnStartTrip = findViewById(R.id.btnStartTrip);
         tvBikeStatus = findViewById(R.id.tvBikeStatus);
         imgLogo = findViewById(R.id.imgLogo);
-        btnLogout = findViewById(R.id.btnLogout);
-        btnSettings = findViewById(R.id.btnSettings);
 
         // Restaurar estado guardado de la bicicleta
         isBikeOn = prefs.getBoolean(KEY_BIKE_STATE, false);
