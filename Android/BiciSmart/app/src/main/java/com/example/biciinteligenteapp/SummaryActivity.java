@@ -31,7 +31,7 @@ public class SummaryActivity extends AppCompatActivity {
         // Formatear datos
         String timeFormatted = formatElapsed(durationMs);
         String distanceFormatted = String.format(Locale.US, "%.2f km", distanceKm);
-        String caloriesFormatted = String.format(Locale.US, "%.0f kcal", estimateCalories(distanceKm, weightKg));
+        String caloriesFormatted = String.format(Locale.US, "%.0f kcal", estimateCalories(distanceKm, durationMs, weightKg));
 
         tvTime.setText(getString(R.string.summary_time_label, timeFormatted));
         tvDistance.setText(getString(R.string.summary_distance_label, distanceFormatted));
@@ -47,11 +47,43 @@ public class SummaryActivity extends AppCompatActivity {
     }
 
     // Estima las calorías quemadas (valor aproximado basado en peso y distancia)
-    private double estimateCalories(double distanceKm, double weightKg) {
-        // Fórmula base: 35 kcal/km para 70kg, ajustado por peso
-        double baseRate = 35.0 * (weightKg / 70.0);
-        return distanceKm * baseRate;
+    private double estimateCalories(double distanceKm, double durationMs, double weightKg) {
+        if (distanceKm <= 0 || durationMs <= 0 || weightKg <= 0) {
+            return 0.0;
+        }
+
+        // Duración en horas
+        double hours = durationMs / 3600000.0;
+
+        // Velocidad promedio en km/h
+        double avgSpeed = distanceKm / hours;
+
+        // Determinar MET según velocidad
+        double met;
+        if (avgSpeed < 10.0) {
+            met = 3.5;
+        } else if (avgSpeed < 12.0) {
+            met = 4.0;
+        } else if (avgSpeed < 14.0) {
+            met = 6.0;
+        } else if (avgSpeed < 16.0) {
+            met = 8.0;
+        } else if (avgSpeed < 19.0) {
+            met = 10.0;
+        } else if (avgSpeed < 22.0) {
+            met = 12.0;
+        } else if (avgSpeed < 25.0) {
+            met = 14.0;
+        } else if (avgSpeed < 30.0) {
+            met = 16.0;
+        } else {
+            met = 18.0;
+        }
+
+        // Cálculo final de calorías quemadas
+        return met * weightKg * hours;
     }
+
 
     // Formatea el tiempo transcurrido
     private String formatElapsed(long ms) {

@@ -47,7 +47,7 @@ public class TravelActivity extends AppCompatActivity {
     private TextView tvTimer, tvDistance;
     public IntentFilter filterReceive;
     public IntentFilter filterConncetionLost;
-    private final ReceptorOperacion receiver = new ReceptorOperacion();
+    private final messageReceiver receiver = new messageReceiver();
     private final ConnectionLost connectionLost = new ConnectionLost();
 
     private static final String TAG = "TravelActivity";
@@ -255,7 +255,7 @@ public class TravelActivity extends AppCompatActivity {
         }
     }
 
-    public class ReceptorOperacion extends BroadcastReceiver {
+    public class messageReceiver extends BroadcastReceiver {
         public void onReceive(Context context, Intent intent) {
             double msg = intent.getDoubleExtra("msg",0);
             onNewMessage(msg);

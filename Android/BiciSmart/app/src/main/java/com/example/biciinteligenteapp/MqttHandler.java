@@ -190,7 +190,7 @@ public class MqttHandler implements MqttCallback {
                 double value = json.getDouble("value");
                 Log.d(TAG, "Valor extraído correctamente: " + value);
 
-                // Enviar broadcast con el mensaje completo
+                // Enviar broadcast con el mensaje
                 Intent i = new Intent(ACTION_DATA_RECEIVE);
                 i.addCategory(Intent.CATEGORY_DEFAULT);
                 i.putExtra("msg", value);
