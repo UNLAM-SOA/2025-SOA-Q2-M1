@@ -189,13 +189,23 @@ public class TravelActivity extends AppCompatActivity {
 
     private void loadUserSettings() {
         SharedPreferences prefs = getSharedPreferences("UserSettings", MODE_PRIVATE);
-        String wheel = prefs.getString("wheel", "");
-        String weight = prefs.getString("weight", "");
 
-        wheelInches = Double.parseDouble(wheel.replace(",", "."));
-        userWeightKg = Double.parseDouble(weight.replace(",", "."));
+        String wheel = prefs.getString("wheel", null);
+        String weight = prefs.getString("weight", null);
 
+        if (wheel == null || wheel.trim().isEmpty()) {
+            wheelInches = 26.0;
+        } else {
+            wheelInches = Double.parseDouble(wheel.replace(",", "."));
+        }
+
+        if (weight == null || weight.trim().isEmpty()) {
+            userWeightKg = 70.0;
+        } else {
+            userWeightKg = Double.parseDouble(weight.replace(",", "."));
+        }
     }
+
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void setupBroadcastReceiver() {
