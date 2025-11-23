@@ -40,7 +40,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TravelActivity extends AppCompatActivity {
     private MqttHandler mqttHandler;
@@ -75,6 +77,8 @@ public class TravelActivity extends AppCompatActivity {
 
     private final ScheduledExecutorService mapExecutor =
             Executors.newSingleThreadScheduledExecutor();
+    private final AtomicBoolean mapProcessorStarted = new AtomicBoolean(false);
+    private ScheduledFuture<?> mapProcessorFuture;
 
     private final BlockingQueue<GeoPoint> pendingPoints =
             new LinkedBlockingQueue<>();
@@ -101,7 +105,7 @@ public class TravelActivity extends AppCompatActivity {
         mapView = findViewById(R.id.mapView);
         if (mapView != null) {
             mapView.setMultiTouchControls(true);
-            mapView.getController().setZoom(17.0);
+            mapView.getController().setZoom(19.5);
             mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK);
 
             routeLine = new Polyline();
@@ -167,7 +171,11 @@ public class TravelActivity extends AppCompatActivity {
     }
 
     private void startBackgroundMapProcessor() {
-        mapExecutor.scheduleWithFixedDelay(() -> {
+        if (!mapProcessorStarted.compareAndSet(false, true)) {
+            return; // ya estaba iniciado
+        }
+
+        mapProcessorFuture = mapExecutor.scheduleWithFixedDelay(() -> {
             List<GeoPoint> batch = new ArrayList<>();
             pendingPoints.drainTo(batch);
 
@@ -185,6 +193,14 @@ public class TravelActivity extends AppCompatActivity {
             });
 
         }, 0, 1, TimeUnit.SECONDS);
+    }
+
+    private void stopBackgroundMapProcessor() {
+        if (mapProcessorFuture != null) {
+            mapProcessorFuture.cancel(true);
+            mapProcessorFuture = null;
+        }
+        mapProcessorStarted.set(false);
     }
 
     private void loadUserSettings() {
@@ -272,28 +288,55 @@ public class TravelActivity extends AppCompatActivity {
         }
     }
 
-    @Override protected void onResume() {
+    @Override
+    protected void onResume() {
         super.onResume();
         if (mapView != null) mapView.onResume();
+
         handler.post(tick);
+
+        // Reiniciar localización si estaba habilitada
+        if (myLocationOverlay != null) {
+            myLocationOverlay.enableMyLocation();
+            myLocationOverlay.enableFollowLocation();
+        }
+
         startBackgroundMapProcessor();
     }
 
-    @Override protected void onPause() {
+    @Override
+    protected void onPause() {
         super.onPause();
         if (mapView != null) mapView.onPause();
+
         handler.removeCallbacks(tick);
+
+        // Detener overlay de localización
+        if (myLocationOverlay != null) {
+            myLocationOverlay.disableFollowLocation();
+            myLocationOverlay.disableMyLocation();
+        }
+
+        // Detener procesamiento de puntos
+        stopBackgroundMapProcessor();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacks(tick);
+
         try {
             unregisterReceiver(receiver);
             unregisterReceiver(connectionLost);
         } catch (Exception ignored) {}
 
-        mapExecutor.shutdownNow();
+        stopBackgroundMapProcessor(); // detiene la tarea programada
+        mapExecutor.shutdownNow(); // cierra el executor
+
+        if (myLocationOverlay != null) {
+            myLocationOverlay.disableFollowLocation();
+            myLocationOverlay.disableMyLocation();
+        }
     }
 }
